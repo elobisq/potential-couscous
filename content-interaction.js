@@ -1,5 +1,5 @@
 (function() {
-    console.log('Standalone script initialized');
+    console.log('script initialized');
 
     /**
      * Interacts with an element on the page, setting its value and triggering events.
@@ -43,34 +43,21 @@
     }
 
     /**
-     * Attempts to retrieve content from the page or a predefined source.
-     * @returns {string} The content to be used or an empty string if not found.
+     * Attempts to read the clipboard content using a user-triggered method.
+     * @returns {Promise<string>} The clipboard content or an empty string if failed.
      */
-    function getContent() {
-        // Attempt to find content in the page
-        const possibleSources = [
-            () => document.querySelector('input[type="text"]')?.value,
-            () => document.querySelector('textarea')?.value,
-            () => window.getSelection().toString(),
-            // Add more potential sources here
-        ];
-
-        for (const source of possibleSources) {
-            const content = source();
-            if (content) {
-                console.log(`Content found: ${content.substring(0, 50)}...`);
-                return content;
-            }
-        }
-
-        console.log('No content found on the page');
-        return '';
+    function safeClipboardRead() {
+        console.log('Prompting user to paste content');
+        return new Promise((resolve) => {
+            const userInput = prompt("Please paste your text here:");
+            resolve(userInput || '');
+        });
     }
 
     /**
      * Main function to execute when the page is loaded.
      */
-    function main() {
+    async function main() {
         console.log('Main function started');
         const hosts = ['zerogpt.com', 'gptzero.me'];
         if (!isMatchingHost(hosts)) {
@@ -78,13 +65,14 @@
             return;
         }
 
-        const content = getContent();
+        const clipboardText = await safeClipboardRead();
+        console.log(`User input text length: ${clipboardText.length}`);
         
-        if (content.length > 0) {
-            console.log('Content found. Interacting with textarea.');
-            interactWithElement('textarea', content);
+        if (clipboardText.length > 0) {
+            console.log('User provided content. Interacting with textarea.');
+            interactWithElement('textarea', clipboardText);
         } else {
-            console.log('No content found. No action taken.');
+            console.log('No content provided. No action taken.');
         }
     }
 
