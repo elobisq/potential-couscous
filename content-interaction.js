@@ -2,14 +2,15 @@
     console.log('Script initialized');
 
     /**
-     * Finds a button by its text content.
-     * @param {string} text - The text to search for in the button.
-     * @returns {Element|null} The found button element or null.
-     */
+ * Finds a button by its text content.
+ * @param {string} text - The text to search for in the button.
+ * @returns {Element|null} The found button element or null.
+ */
     function findButtonByText(text) {
         const allButtons = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
         return allButtons.find(button => button.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
     }
+
 
     /**
      * Interacts with an element on the page, setting its value and triggering events.
@@ -21,7 +22,7 @@
         const element = document.querySelector(selector);
         if (!element || element.disabled) {
             console.log(`Element not found or disabled: ${selector}`);
-            return false;
+            return;
         }
 
         console.log(`Focusing on element: ${selector}`);
@@ -37,19 +38,19 @@
         });
 
         console.log('Finished interacting with element');
-        return true;
     }
 
     /**
      * Checks if the current URL matches any of the specified hosts.
-     * @returns {string} The matched host or an empty string.
      */
+
     function isMatchingHost() {
         const currentUrl = window.location.href;
         const hosts = ['zerogpt.com', 'gptzero.me'];
         console.log(`Checking if current URL matches hosts: ${hosts.join(', ')}`);
         return hosts.find(host => currentUrl.includes(host)) || '';
     }
+
 
     /**
      * Attempts to read the clipboard content using a user-triggered method.
@@ -64,31 +65,11 @@
     }
 
     /**
-     * Clicks the appropriate submit button based on the host.
-     * @param {string} host - The current host.
-     */
-    function clickSubmitButton(host) {
-        let submitButton = null;
-        if (host === "zerogpt.com") {
-            submitButton = findButtonByText('detect text');
-        } else if (host === "gptzero.me") {
-            submitButton = findButtonByText('check origin');
-        }
-        if (submitButton) {
-            console.log('Submit button found, clicking');
-            submitButton.click();
-        } else {
-            console.log('Submit button not found');
-        }
-    }
-
-    /**
      * Main function to execute when the page is loaded.
      */
     async function main() {
         console.log('Main function started');
-        const host = isMatchingHost();
-        if (host.length === 0) {
+        if (isMatchingHost().length === 0) {
             console.log('Current host does not match target hosts. Exiting.');
             return;
         }
@@ -98,16 +79,9 @@
 
         if (clipboardText.length > 0) {
             console.log('User provided content. Interacting with textarea.');
-            if (interactWithElement('textarea', clipboardText)) {
-                // Wait for a short time to ensure the textarea is updated
-                setTimeout(() => {
-                    if (document.querySelector('textarea').value.length > 0) {
-                        clickSubmitButton(host);
-                    } else {
-                        console.log('Textarea is empty after interaction. No action taken.');
-                    }
-                }, 500); // 500ms delay
-            }
+            interactWithElement('textarea', clipboardText);
+
+
         } else {
             console.log('No content provided. No action taken.');
         }
@@ -124,4 +98,20 @@
             main();
         });
     }
+
+    if (document.querySelector('textarea').value.length > 0) {
+        const host = isMatchingHost();
+        let submitButton = null;
+        if (host === "zerogpt.com") {
+            submitButton = findButtonByText('detect text');
+        } else if (host === "gptzero.me") {
+            submitButton = findButtonByText('check origin');
+        }
+        if (submitButton) {
+            console.log('Submit button found, clicking');
+            submitButton.click();
+            observer.disconnect();
+        }
+    }
+
 })();
