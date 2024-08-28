@@ -90,7 +90,6 @@
         } else {
             console.log('No content provided. No action taken.');
         }
-        if (document.cookie.includes("clipboard=true")) {
             if (document.querySelector('textarea').value.length > 0) {
                 const host = isMatchingHost();
                 let submitButton = null;
@@ -105,7 +104,6 @@
                     observer.disconnect();
                 }
             }
-        }
     }
 
     if (document.readyState === 'complete') {
