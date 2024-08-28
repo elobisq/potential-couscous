@@ -81,6 +81,12 @@
             console.log('User provided content. Interacting with textarea.');
             interactWithElement('textarea', clipboardText);
 
+
+        } else {
+            console.log('No content provided. No action taken.');
+        }
+
+        if (document.querySelector('textarea').value.length > 0) {
             const host = isMatchingHost();
             let submitButton = null;
             if (host === "zerogpt.com") {
@@ -93,10 +99,6 @@
                 submitButton.click();
                 observer.disconnect();
             }
-
-
-        } else {
-            console.log('No content provided. No action taken.');
         }
     }
 
