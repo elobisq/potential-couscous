@@ -99,19 +99,19 @@
         });
     }
 
-    if (document.querySelector('textarea').value.length > 0) {
-        const host = isMatchingHost();
-        let submitButton = null;
-        if (host === "zerogpt.com") {
-            submitButton = findButtonByText('detect text');
-        } else if (host === "gptzero.me") {
-            submitButton = findButtonByText('check origin');
-        }
-        if (submitButton) {
-            console.log('Submit button found, clicking');
-            submitButton.click();
-            observer.disconnect();
-        }
-    }
+    // if (document.querySelector('textarea').value.length > 0) {
+    //     const host = isMatchingHost();
+    //     let submitButton = null;
+    //     if (host === "zerogpt.com") {
+    //         submitButton = findButtonByText('detect text');
+    //     } else if (host === "gptzero.me") {
+    //         submitButton = findButtonByText('check origin');
+    //     }
+    //     if (submitButton) {
+    //         console.log('Submit button found, clicking');
+    //         submitButton.click();
+    //         observer.disconnect();
+    //     }
+    // }
 
 })();
