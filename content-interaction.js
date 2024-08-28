@@ -1,32 +1,51 @@
+// standalone-script.js
+
 (function() {
-    console.log('script initialized');
+    console.log('Standalone script initialized');
 
     /**
-     * Interacts with an element on the page, setting its value and triggering events.
-     * @param {string} selector - CSS selector for the target element.
-     * @param {string} value - Value to set on the element.
+     * Attempts to paste content into the specified element.
+     * @param {Element} element - The element to paste into.
      */
-    function interactWithElement(selector, value) {
-        console.log(`Attempting to interact with element: ${selector}`);
-        const element = document.querySelector(selector);
-        if (!element || element.disabled) {
-            console.log(`Element not found or disabled: ${selector}`);
-            return;
-        }
-
-        console.log(`Focusing on element: ${selector}`);
+    function attemptPaste(element) {
+        console.log('Attempting to paste content');
         element.focus();
+        document.execCommand('paste');
+        console.log(`Element value after paste attempt: ${element.value}`);
 
-        console.log(`Setting value for element: ${value}`);
-        element.value = value;
+        if (element.value) {
+            console.log('Content pasted successfully');
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+            element.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+            console.log('Paste attempt failed or no content in clipboard');
+        }
+    }
 
-        // Dispatch native events
-        ['change', 'input'].forEach(eventType => {
-            console.log(`Dispatching ${eventType} event`);
-            element.dispatchEvent(new Event(eventType, { bubbles: true }));
-        });
+    /**
+     * Sets up a mutation observer to watch for the textarea element.
+     */
+    function setupMutationObserver() {
+        console.log('Setting up mutation observer');
+        const targetNode = document.body;
+        const config = { childList: true, subtree: true };
 
-        console.log('Finished interacting with element');
+        const callback = function(mutationsList, observer) {
+            for (let mutation of mutationsList) {
+                if (mutation.type === 'childList') {
+                    const textarea = document.querySelector('textarea');
+                    if (textarea) {
+                        console.log('Textarea found');
+                        observer.disconnect();
+                        attemptPaste(textarea);
+                        return;
+                    }
+                }
+            }
+        };
+
+        const observer = new MutationObserver(callback);
+        observer.observe(targetNode, config);
     }
 
     /**
@@ -43,21 +62,9 @@
     }
 
     /**
-     * Attempts to read the clipboard content using a user-triggered method.
-     * @returns {Promise<string>} The clipboard content or an empty string if failed.
-     */
-    function safeClipboardRead() {
-        console.log('Prompting user to paste content');
-        return new Promise((resolve) => {
-            const userInput = prompt("Please paste your text here:");
-            resolve(userInput || '');
-        });
-    }
-
-    /**
      * Main function to execute when the page is loaded.
      */
-    async function main() {
+    function main() {
         console.log('Main function started');
         const hosts = ['zerogpt.com', 'gptzero.me'];
         if (!isMatchingHost(hosts)) {
@@ -65,15 +72,7 @@
             return;
         }
 
-        const clipboardText = await safeClipboardRead();
-        console.log(`User input text length: ${clipboardText.length}`);
-        
-        if (clipboardText.length > 0) {
-            console.log('User provided content. Interacting with textarea.');
-            interactWithElement('textarea', clipboardText);
-        } else {
-            console.log('No content provided. No action taken.');
-        }
+        setupMutationObserver();
     }
 
     // Execute main function when the page is fully loaded
