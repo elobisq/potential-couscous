@@ -42,7 +42,6 @@
             }
         }
         );
-        await simulateClick(selector);
     }
 
     function findButtonByText(text) {
