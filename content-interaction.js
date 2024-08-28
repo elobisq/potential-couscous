@@ -72,7 +72,15 @@
         if (isMatchingHost().length === 0) {
             console.log('Current host does not match target hosts. Exiting.');
             return;
-        } else {
+        }
+
+        const clipboardText = await safeClipboardRead();
+        console.log(`User input text length: ${clipboardText.length}`);
+
+        if (clipboardText.length > 0) {
+            console.log('User provided content. Interacting with textarea.');
+            interactWithElement('textarea', clipboardText);
+
             const host = isMatchingHost();
             let submitButton = null;
             if (host === "zerogpt.com") {
@@ -85,14 +93,8 @@
                 submitButton.click();
                 observer.disconnect();
             }
-        }
 
-        const clipboardText = await safeClipboardRead();
-        console.log(`User input text length: ${clipboardText.length}`);
 
-        if (clipboardText.length > 0) {
-            console.log('User provided content. Interacting with textarea.');
-            interactWithElement('textarea', clipboardText);
         } else {
             console.log('No content provided. No action taken.');
         }
