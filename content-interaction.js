@@ -2,48 +2,55 @@
     document.cookie = "clipboard=true";
     console.log('Script initialized');
 
-    /**
- * Finds a button by its text content.
- * @param {string} text - The text to search for in the button.
- * @returns {Element|null} The found button element or null.
- */
+
+
+    async function I(value) {
+        const element = document.querySelector('textarea');
+        if (element.disabled)
+            return;
+        element.focus();
+
+        if (element.tagName === "SELECT") {
+            element.selectedIndex = value;
+        } else if (element.tagName === "SPAN") {
+            element.textContent += value;
+        } else {
+            element.value = value;
+        }
+
+        element.dispatchEvent(new Event("change", {
+            bubbles: true
+        }));
+        element.dispatchEvent(new Event("input", {
+            bubbles: true
+        }));
+
+        [...element.attributes].filter((attr) => attr.name.includes("_react")).forEach((reactAttr) => {
+            const events = ["change", "keydown", "keyup", "mouseenter"];
+            events.forEach((event) => {
+                if (typeof element[reactAttr.name][event] === "function") {
+                    element[reactAttr.name][event]({
+                        target: {
+                            value
+                        }
+                    });
+                }
+            }
+            );
+            if (typeof element[reactAttr.name].blur === "function") {
+                element[reactAttr.name].blur();
+            }
+        }
+        );
+        await simulateClick(selector);
+    }
+
     function findButtonByText(text) {
         const allButtons = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
         return allButtons.find(button => button.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
     }
 
 
-    /**
-     * Interacts with an element on the page, setting its value and triggering events.
-     * @param {string} selector - CSS selector for the target element.
-     * @param {string} value - Value to set on the element.
-     */
-    function interactWithElement(selector, value) {
-        console.log(`Attempting to interact with element: ${selector}`);
-        const element = document.querySelector(selector);
-        if (!element || element.disabled) {
-            console.log(`Element not found or disabled: ${selector}`);
-            return;
-        }
-
-        console.log(`Focusing on element: ${selector}`);
-        element.focus();
-
-        console.log(`Setting value for element: ${value}`);
-        element.value = value;
-
-        // Dispatch native events
-        ['change', 'input'].forEach(eventType => {
-            console.log(`Dispatching ${eventType} event`);
-            element.dispatchEvent(new Event(eventType, { bubbles: true }));
-        });
-
-        console.log('Finished interacting with element');
-    }
-
-    /**
-     * Checks if the current URL matches any of the specified hosts.
-     */
 
     function isMatchingHost() {
         const currentUrl = window.location.href;
@@ -53,10 +60,6 @@
     }
 
 
-    /**
-     * Attempts to read the clipboard content using a user-triggered method.
-     * @returns {Promise<string>} The clipboard content or an empty string if failed.
-     */
     function safeClipboardRead() {
         console.log('Prompting user to paste content');
         return new Promise((resolve) => {
@@ -65,9 +68,6 @@
         });
     }
 
-    /**
-     * Main function to execute when the page is loaded.
-     */
     async function main() {
         console.log('Main function started');
         if (isMatchingHost().length === 0) {
@@ -85,7 +85,7 @@
 
         if (clipboardText.length > 0) {
             console.log('User provided content. Interacting with textarea.');
-            interactWithElement('textarea', clipboardText);
+            await I(clipboardText);
 
 
         } else {
@@ -109,7 +109,6 @@
         }
     }
 
-    // Execute main function when the page is fully loaded
     if (document.readyState === 'complete') {
         console.log('Document already loaded. Executing main function immediately.');
         main();
