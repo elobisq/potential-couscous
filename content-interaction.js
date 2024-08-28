@@ -1,122 +1,137 @@
-(function () {
-    document.cookie = "clipboard=true";
-    console.log('Script initialized');
+(function() {
+    'use strict';
 
+    const HOSTS = ['zerogpt.com', 'gptzero.me'];
+    const DEBUG = true;
 
+    function log(message) {
+        if (DEBUG) console.log(`[Content Interaction]: ${message}`);
+    }
 
-    async function I(value) {
+    log('Script initialized');
+
+    /**
+     * Interacts with the textarea element on the page.
+     * @param {string} value - The text to be inserted into the textarea.
+     */
+    async function interactWithTextArea(value) {
         const element = document.querySelector('textarea');
-        if (element.disabled)
-            return;
+        if (!element || element.disabled) return;
+
         element.focus();
+        element.value = value;
 
-        if (element.tagName === "SELECT") {
-            element.selectedIndex = value;
-        } else if (element.tagName === "SPAN") {
-            element.textContent += value;
-        } else {
-            element.value = value;
-        }
+        ['change', 'input'].forEach(eventType => {
+            element.dispatchEvent(new Event(eventType, { bubbles: true }));
+        });
 
-        element.dispatchEvent(new Event("change", {
-            bubbles: true
-        }));
-        element.dispatchEvent(new Event("input", {
-            bubbles: true
-        }));
-
-        [...element.attributes].filter((attr) => attr.name.includes("_react")).forEach((reactAttr) => {
-            const events = ["change", "keydown", "keyup", "mouseenter"];
-            events.forEach((event) => {
-                if (typeof element[reactAttr.name][event] === "function") {
-                    element[reactAttr.name][event]({
-                        target: {
-                            value
-                        }
-                    });
+        // Handle React-specific attributes
+        Array.from(element.attributes)
+            .filter(attr => attr.name.includes('_react'))
+            .forEach(reactAttr => {
+                ['change', 'keydown', 'keyup', 'mouseenter'].forEach(eventType => {
+                    if (typeof element[reactAttr.name][eventType] === 'function') {
+                        element[reactAttr.name][eventType]({ target: { value } });
+                    }
+                });
+                if (typeof element[reactAttr.name].blur === 'function') {
+                    element[reactAttr.name].blur();
                 }
-            }
-            );
-            if (typeof element[reactAttr.name].blur === "function") {
-                element[reactAttr.name].blur();
-            }
-        }
-        );
+            });
     }
 
+    /**
+     * Finds a button by its text content.
+     * @param {string} text - The text to search for in button content.
+     * @returns {HTMLElement|null} - The found button element or null.
+     */
     function findButtonByText(text) {
-        const allButtons = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
-        return allButtons.find(button => button.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
+        const elements = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
+        return elements.find(el => el.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
     }
 
-
-
-    function isMatchingHost() {
+    /**
+     * Checks if the current host matches any in the HOSTS array.
+     * @returns {string} - The matched host or an empty string.
+     */
+    function getMatchingHost() {
         const currentUrl = window.location.href;
-        const hosts = ['zerogpt.com', 'gptzero.me'];
-        console.log(`Checking if current URL matches hosts: ${hosts.join(', ')}`);
-        return hosts.find(host => currentUrl.includes(host)) || '';
+        log(`Checking if current URL matches hosts: ${HOSTS.join(', ')}`);
+        return HOSTS.find(host => currentUrl.includes(host)) || '';
     }
 
-
+    /**
+     * Prompts the user to paste content.
+     * @returns {Promise<string>} - A promise that resolves with the pasted content.
+     */
     function safeClipboardRead() {
-        console.log('Prompting user to paste content');
-        return new Promise((resolve) => {
+        log('Prompting user to paste content');
+        return new Promise(resolve => {
             const userInput = prompt("Please paste your text here:");
             resolve(userInput || '');
         });
     }
 
+    /**
+     * Simulates a click on the given element.
+     * @param {HTMLElement} element - The element to click.
+     */
+    function simulateClick(element) {
+        if (!element) return;
+        
+        const clickEvent = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+        });
+        element.dispatchEvent(clickEvent);
+    }
+
+    /**
+     * Main function to handle the content interaction process.
+     */
     async function main() {
-        console.log('Main function started');
-        if (isMatchingHost().length === 0) {
-            console.log('Current host does not match target hosts. Exiting.');
+        log('Main function started');
+        const host = getMatchingHost();
+        if (!host) {
+            log('Current host does not match target hosts. Exiting.');
             return;
         }
 
         const clipboardText = await safeClipboardRead();
-        if (clipboardText.length > 0) {
-            if (document.cookie.includes("clipboard=false")) {
-                document.cookie = "clipboard=true"
-            }
-        }
-        console.log(`User input text length: ${clipboardText.length}`);
+        log(`User input text length: ${clipboardText.length}`);
 
         if (clipboardText.length > 0) {
-            console.log('User provided content. Interacting with textarea.');
-            await I(clipboardText);
+            log('User provided content. Interacting with textarea.');
+            await interactWithTextArea(clipboardText);
 
-
-        } else {
-            console.log('No content provided. No action taken.');
-        }
-            if (document.querySelector('textarea').value.length > 0) {
-                const host = isMatchingHost();
+            const textarea = document.querySelector('textarea');
+            if (textarea && textarea.value.length > 0) {
                 let submitButton = null;
                 if (host === "zerogpt.com") {
                     submitButton = findButtonByText('detect text');
                 } else if (host === "gptzero.me") {
                     submitButton = findButtonByText('check origin');
                 }
+                
                 if (submitButton) {
-                    console.log('Submit button found, clicking');
-                    submitButton.click();
-                    observer.disconnect();
+                    log('Submit button found, simulating click');
+                    simulateClick(submitButton);
+                } else {
+                    log('Submit button not found');
                 }
             }
+        } else {
+            log('No content provided. No action taken.');
+        }
     }
 
+    // Execute main function when the document is ready
     if (document.readyState === 'complete') {
-        console.log('Document already loaded. Executing main function immediately.');
+        log('Document already loaded. Executing main function immediately.');
         main();
     } else {
-        console.log('Document not yet loaded. Adding load event listener.');
-        window.addEventListener('load', () => {
-            console.log('Document loaded. Executing main function.');
-            main();
-        });
+        log('Document not yet loaded. Adding load event listener.');
+        window.addEventListener('load', main);
     }
-
-
-
 })();
