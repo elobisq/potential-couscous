@@ -23,21 +23,31 @@
     }
 
     /**
-     * Attempts to paste content into the specified element.
-     * @param {Element} element - The element to paste into.
+     * Prompts the user to input text and returns it.
+     * @returns {string} The user input text.
      */
-    function attemptPaste(element) {
-        console.log('Attempting to paste content');
+    function promptForInput() {
+        console.log('Prompting user for input');
+        return prompt("Please paste or type your text here:") || '';
+    }
+
+    /**
+     * Attempts to set content into the specified element.
+     * @param {Element} element - The element to set content into.
+     * @param {string} content - The content to set.
+     */
+    function setContent(element, content) {
+        console.log('Attempting to set content');
         element.focus();
-        document.execCommand('paste');
-        console.log(`Element value after paste attempt: ${element.value}`);
+        element.value = content;
+        console.log(`Element value after set attempt: ${element.value}`);
 
         if (element.value) {
-            console.log('Content pasted successfully');
+            console.log('Content set successfully');
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
         } else {
-            console.log('Paste attempt failed or no content in clipboard');
+            console.log('Content set failed');
         }
     }
 
@@ -55,7 +65,10 @@
 
             if (textarea.value.length === 0) {
                 console.log('Empty textarea found');
-                attemptPaste(textarea);
+                const userInput = promptForInput();
+                if (userInput) {
+                    setContent(textarea, userInput);
+                }
             } else {
                 const host = isMatchingHost();
                 let submitButton = null;
