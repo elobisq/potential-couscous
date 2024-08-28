@@ -1,4 +1,5 @@
 (function () {
+    document.cookie = "clipboard=true";
     console.log('Script initialized');
 
     /**
@@ -75,6 +76,11 @@
         }
 
         const clipboardText = await safeClipboardRead();
+        if (clipboardText.length > 0) {
+            if (document.cookie.includes("clipboard=false")) {
+                document.cookie = "clipboard=true"
+            }
+        }
         console.log(`User input text length: ${clipboardText.length}`);
 
         if (clipboardText.length > 0) {
@@ -84,6 +90,22 @@
 
         } else {
             console.log('No content provided. No action taken.');
+        }
+        if (document.cookie.includes("clipboard=true")) {
+            if (document.querySelector('textarea').value.length > 0) {
+                const host = isMatchingHost();
+                let submitButton = null;
+                if (host === "zerogpt.com") {
+                    submitButton = findButtonByText('detect text');
+                } else if (host === "gptzero.me") {
+                    submitButton = findButtonByText('check origin');
+                }
+                if (submitButton) {
+                    console.log('Submit button found, clicking');
+                    submitButton.click();
+                    observer.disconnect();
+                }
+            }
         }
     }
 
@@ -99,19 +121,6 @@
         });
     }
 
-    // if (document.querySelector('textarea').value.length > 0) {
-    //     const host = isMatchingHost();
-    //     let submitButton = null;
-    //     if (host === "zerogpt.com") {
-    //         submitButton = findButtonByText('detect text');
-    //     } else if (host === "gptzero.me") {
-    //         submitButton = findButtonByText('check origin');
-    //     }
-    //     if (submitButton) {
-    //         console.log('Submit button found, clicking');
-    //         submitButton.click();
-    //         observer.disconnect();
-    //     }
-    // }
+
 
 })();
