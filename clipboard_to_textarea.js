@@ -4,37 +4,51 @@
  * @param {string} value - Value to set on the element.
  */
 async function interactWithElement(selector, value) {
+    console.log(`Attempting to interact with element: ${selector}`);
     const element = document.querySelector(selector);
-    if (!element || element.disabled) return;
+    if (!element || element.disabled) {
+        console.log(`Element not found or disabled: ${selector}`);
+        return;
+    }
 
+    console.log(`Focusing on element: ${selector}`);
     element.focus();
 
     if (element.tagName === "SELECT") {
+        console.log(`Setting selectedIndex for SELECT element: ${value}`);
         element.selectedIndex = value;
     } else if (element.tagName === "SPAN") {
+        console.log(`Appending text to SPAN element: ${value}`);
         element.textContent += value;
     } else {
+        console.log(`Setting value for element: ${value}`);
         element.value = value;
     }
 
     // Dispatch native events
     ['change', 'input'].forEach(eventType => {
+        console.log(`Dispatching ${eventType} event`);
         element.dispatchEvent(new Event(eventType, { bubbles: true }));
     });
 
     // Handle React-specific attributes
     const reactAttributes = [...element.attributes].filter(attr => attr.name.includes('_react'));
+    console.log(`Found ${reactAttributes.length} React-specific attributes`);
     reactAttributes.forEach(reactAttr => {
+        console.log(`Processing React attribute: ${reactAttr.name}`);
         ['change', 'keydown', 'keyup', 'mouseenter'].forEach(eventType => {
             if (typeof element[reactAttr.name][eventType] === 'function') {
+                console.log(`Triggering React ${eventType} event`);
                 element[reactAttr.name][eventType]({ target: { value } });
             }
         });
 
         if (typeof element[reactAttr.name].blur === 'function') {
+            console.log('Triggering React blur event');
             element[reactAttr.name].blur();
         }
     });
+    console.log('Finished interacting with element');
 }
 
 /**
@@ -44,34 +58,58 @@ async function interactWithElement(selector, value) {
  */
 function isMatchingHost(hosts) {
     const currentUrl = document.location.href;
-    return hosts.some(host => currentUrl.includes(host));
+    console.log(`Checking if current URL matches hosts: ${hosts.join(', ')}`);
+    const isMatching = hosts.some(host => currentUrl.includes(host));
+    console.log(`URL match result: ${isMatching}`);
+    return isMatching;
 }
 
 /**
  * Main function to execute when the page is loaded.
  */
 async function main() {
+    console.log('Main function started');
     const hosts = ['zerogpt.com', 'gptzero.me'];
-    if (!isMatchingHost(hosts)) return;
+    if (!isMatchingHost(hosts)) {
+        console.log('Current host does not match target hosts. Exiting.');
+        return;
+    }
 
+    console.log('Starting wait interval');
     const waitInterval = setInterval(async () => {
+        console.log('Checking document focus');
         if (document.hasFocus()) {
+            console.log('Document is focused. Clearing interval.');
             clearInterval(waitInterval);
             try {
+                console.log('Attempting to read clipboard');
                 const clipboardText = await navigator.clipboard.readText();
+                console.log(`Clipboard text length: ${clipboardText.length}`);
                 if (clipboardText.length > 0) {
+                    console.log('Clipboard has content. Interacting with textarea.');
                     await interactWithElement('textarea', clipboardText);
+                } else {
+                    console.log('Clipboard is empty. No action taken.');
                 }
             } catch (error) {
                 console.error('Error accessing clipboard:', error);
             }
+        } else {
+            console.log('Document not focused. Waiting...');
         }
     }, 1000);
 }
 
 // Execute main function when the page is fully loaded
 if (document.readyState === 'complete') {
+    console.log('Document already loaded. Executing main function immediately.');
     main();
 } else {
-    window.addEventListener('load', main);
+    console.log('Document not yet loaded. Adding load event listener.');
+    window.addEventListener('load', () => {
+        console.log('Document loaded. Executing main function.');
+        main();
+    });
 }
+
+console.log('Content script initialized');
