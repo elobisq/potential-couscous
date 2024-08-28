@@ -2,9 +2,48 @@
     console.log('Script initialized');
 
     /**
-     * Checks if the current URL matches any of the specified hosts.
-     * @returns {string} The matched host or an empty string if no match.
+ * Finds a button by its text content.
+ * @param {string} text - The text to search for in the button.
+ * @returns {Element|null} The found button element or null.
+ */
+    function findButtonByText(text) {
+        const allButtons = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
+        return allButtons.find(button => button.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
+    }
+
+
+    /**
+     * Interacts with an element on the page, setting its value and triggering events.
+     * @param {string} selector - CSS selector for the target element.
+     * @param {string} value - Value to set on the element.
      */
+    function interactWithElement(selector, value) {
+        console.log(`Attempting to interact with element: ${selector}`);
+        const element = document.querySelector(selector);
+        if (!element || element.disabled) {
+            console.log(`Element not found or disabled: ${selector}`);
+            return;
+        }
+
+        console.log(`Focusing on element: ${selector}`);
+        element.focus();
+
+        console.log(`Setting value for element: ${value}`);
+        element.value = value;
+
+        // Dispatch native events
+        ['change', 'input'].forEach(eventType => {
+            console.log(`Dispatching ${eventType} event`);
+            element.dispatchEvent(new Event(eventType, { bubbles: true }));
+        });
+
+        console.log('Finished interacting with element');
+    }
+
+    /**
+     * Checks if the current URL matches any of the specified hosts.
+     */
+
     function isMatchingHost() {
         const currentUrl = window.location.href;
         const hosts = ['zerogpt.com', 'gptzero.me'];
@@ -12,95 +51,51 @@
         return hosts.find(host => currentUrl.includes(host)) || '';
     }
 
-    /**
-     * Finds a button by its text content.
-     * @param {string} text - The text to search for in the button.
-     * @returns {Element|null} The found button element or null.
-     */
-    function findButtonByText(text) {
-        const allButtons = Array.from(document.querySelectorAll('button, [role="menuitem"]'));
-        return allButtons.find(button => button.textContent.trim().toLowerCase().includes(text.toLowerCase())) || null;
-    }
 
     /**
-     * Prompts the user to input text and returns it.
-     * @returns {string} The user input text.
+     * Attempts to read the clipboard content using a user-triggered method.
+     * @returns {Promise<string>} The clipboard content or an empty string if failed.
      */
-    function promptForInput() {
-        console.log('Prompting user for input');
-        return prompt("Please paste or type your text here:") || '';
-    }
-
-    /**
-     * Attempts to set content into the specified element.
-     * @param {Element} element - The element to set content into.
-     * @param {string} content - The content to set.
-     */
-    function setContent(element, content) {
-        console.log('Attempting to set content');
-        element.focus();
-        element.value = content;
-        console.log(`Element value after set attempt: ${element.value}`);
-
-        if (element.value) {
-            console.log('Content set successfully');
-            element.dispatchEvent(new Event('input', { bubbles: true }));
-            element.dispatchEvent(new Event('change', { bubbles: true }));
-        } else {
-            console.log('Content set failed');
-        }
-    }
-
-    /**
-     * Sets up a mutation observer to watch for the textarea element and submit button.
-     */
-    function setupMutationObserver() {
-        console.log('Setting up mutation observer');
-        const targetNode = document.body;
-        const config = { childList: true, subtree: true };
-
-        const callback = function (mutationsList, observer) {
-            const textarea = document.querySelector('textarea');
-            if (!textarea) return;
-
-            if (textarea.value.length === 0) {
-                console.log('Empty textarea found');
-                const userInput = promptForInput();
-                if (userInput) {
-                    setContent(textarea, userInput);
-                }
-            } else {
-                const host = isMatchingHost();
-                let submitButton = null;
-                if (host === "zerogpt.com") {
-                    submitButton = findButtonByText('detect text');
-                } else if (host === "gptzero.me") {
-                    submitButton = findButtonByText('check origin');
-                }
-                if (submitButton) {
-                    console.log('Submit button found, clicking');
-                    submitButton.click();
-                    observer.disconnect();
-                }
-            }
-        };
-
-        const observer = new MutationObserver(callback);
-        observer.observe(targetNode, config);
+    function safeClipboardRead() {
+        console.log('Prompting user to paste content');
+        return new Promise((resolve) => {
+            const userInput = prompt("Please paste your text here:");
+            resolve(userInput || '');
+        });
     }
 
     /**
      * Main function to execute when the page is loaded.
      */
-    function main() {
+    async function main() {
         console.log('Main function started');
-        const host = isMatchingHost();
-        if (!host) {
+        if (isMatchingHost().length === 0) {
             console.log('Current host does not match target hosts. Exiting.');
             return;
+        } else {
+            const host = isMatchingHost();
+            let submitButton = null;
+            if (host === "zerogpt.com") {
+                submitButton = findButtonByText('detect text');
+            } else if (host === "gptzero.me") {
+                submitButton = findButtonByText('check origin');
+            }
+            if (submitButton) {
+                console.log('Submit button found, clicking');
+                submitButton.click();
+                observer.disconnect();
+            }
         }
-        console.log(`Matched host: ${host}`);
-        setupMutationObserver();
+
+        const clipboardText = await safeClipboardRead();
+        console.log(`User input text length: ${clipboardText.length}`);
+
+        if (clipboardText.length > 0) {
+            console.log('User provided content. Interacting with textarea.');
+            interactWithElement('textarea', clipboardText);
+        } else {
+            console.log('No content provided. No action taken.');
+        }
     }
 
     // Execute main function when the page is fully loaded
