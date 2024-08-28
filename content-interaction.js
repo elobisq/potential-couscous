@@ -17,16 +17,8 @@
         console.log(`Focusing on element: ${selector}`);
         element.focus();
 
-        if (element.tagName === "SELECT") {
-            console.log(`Setting selectedIndex for SELECT element: ${value}`);
-            element.selectedIndex = value;
-        } else if (element.tagName === "SPAN") {
-            console.log(`Appending text to SPAN element: ${value}`);
-            element.textContent += value;
-        } else {
-            console.log(`Setting value for element: ${value}`);
-            element.value = value;
-        }
+        console.log(`Setting value for element: ${value}`);
+        element.value = value;
 
         // Dispatch native events
         ['change', 'input'].forEach(eventType => {
@@ -34,23 +26,6 @@
             element.dispatchEvent(new Event(eventType, { bubbles: true }));
         });
 
-        // Handle React-specific attributes
-        const reactAttributes = [...element.attributes].filter(attr => attr.name.includes('_react'));
-        console.log(`Found ${reactAttributes.length} React-specific attributes`);
-        reactAttributes.forEach(reactAttr => {
-            console.log(`Processing React attribute: ${reactAttr.name}`);
-            ['change', 'keydown', 'keyup', 'mouseenter'].forEach(eventType => {
-                if (typeof element[reactAttr.name][eventType] === 'function') {
-                    console.log(`Triggering React ${eventType} event`);
-                    element[reactAttr.name][eventType]({ target: { value } });
-                }
-            });
-
-            if (typeof element[reactAttr.name].blur === 'function') {
-                console.log('Triggering React blur event');
-                element[reactAttr.name].blur();
-            }
-        });
         console.log('Finished interacting with element');
     }
 
@@ -68,40 +43,34 @@
     }
 
     /**
-     * Attempts to read the clipboard content using a fallback method for iOS.
-     * @returns {Promise<string>} The clipboard content or an empty string if failed.
+     * Attempts to retrieve content from the page or a predefined source.
+     * @returns {string} The content to be used or an empty string if not found.
      */
-    async function safeClipboardRead() {
-        console.log('Attempting to read clipboard');
-        if (navigator.clipboard && navigator.clipboard.readText) {
-            try {
-                return await navigator.clipboard.readText();
-            } catch (error) {
-                console.error('Error accessing clipboard API:', error);
+    function getContent() {
+        // Attempt to find content in the page
+        const possibleSources = [
+            () => document.querySelector('input[type="text"]')?.value,
+            () => document.querySelector('textarea')?.value,
+            () => window.getSelection().toString(),
+            // Add more potential sources here
+        ];
+
+        for (const source of possibleSources) {
+            const content = source();
+            if (content) {
+                console.log(`Content found: ${content.substring(0, 50)}...`);
+                return content;
             }
         }
 
-        // Fallback method for iOS
-        console.log('Using fallback method for clipboard access');
-        return new Promise((resolve) => {
-            const textArea = document.createElement('textarea');
-            textArea.value = '';
-            document.body.appendChild(textArea);
-            textArea.select();
-            textArea.setSelectionRange(0, 99999);
-
-            document.execCommand('paste');
-            const clipboardText = textArea.value;
-            document.body.removeChild(textArea);
-
-            resolve(clipboardText);
-        });
+        console.log('No content found on the page');
+        return '';
     }
 
     /**
      * Main function to execute when the page is loaded.
      */
-    async function main() {
+    function main() {
         console.log('Main function started');
         const hosts = ['zerogpt.com', 'gptzero.me'];
         if (!isMatchingHost(hosts)) {
@@ -109,26 +78,14 @@
             return;
         }
 
-        console.log('Starting wait interval');
-        const waitInterval = setInterval(async () => {
-            console.log('Checking document focus');
-            if (document.hasFocus()) {
-                console.log('Document is focused. Clearing interval.');
-                clearInterval(waitInterval);
-                
-                const clipboardText = await safeClipboardRead();
-                console.log(`Clipboard text length: ${clipboardText.length}`);
-                
-                if (clipboardText.length > 0) {
-                    console.log('Clipboard has content. Interacting with textarea.');
-                    interactWithElement('textarea', clipboardText);
-                } else {
-                    console.log('Clipboard is empty or inaccessible. No action taken.');
-                }
-            } else {
-                console.log('Document not focused. Waiting...');
-            }
-        }, 1000);
+        const content = getContent();
+        
+        if (content.length > 0) {
+            console.log('Content found. Interacting with textarea.');
+            interactWithElement('textarea', content);
+        } else {
+            console.log('No content found. No action taken.');
+        }
     }
 
     // Execute main function when the page is fully loaded
